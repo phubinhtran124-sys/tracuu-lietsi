@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách Phần mộ Liệt sĩ</title>
+    <!-- Tích hợp Tailwind CSS để tạo giao diện chuyên nghiệp -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tùy chỉnh thanh cuộn cho bảng */
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Phần Tiêu đề -->
+        <div class="bg-red-700 px-6 py-5 border-b-4 border-yellow-400">
+            <h2 class="text-2xl md:text-3xl font-bold text-white text-center uppercase tracking-wide">
+                Danh sách Phần mộ Liệt sĩ
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <!-- Thanh tìm kiếm -->
+            <div class="mb-6 flex justify-between items-center">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, quê quán, đơn vị, ô, hàng..." 
+                       class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-all">
+            </div>
+
+            <!-- Bảng hiển thị dữ liệu -->
+            <div class="overflow-x-auto table-container border border-gray-200 rounded-md">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-sm uppercase tracking-wider">
+                            <th class="px-4 py-3 border-b font-semibold">STT</th>
+                            <th class="px-4 py-3 border-b font-semibold">Họ và Tên</th>
+                            <th class="px-4 py-3 border-b font-semibold">Năm Sinh</th>
+                            <th class="px-4 py-3 border-b font-semibold">Ngày Hy Sinh</th>
+                            <th class="px-4 py-3 border-b font-semibold">Cấp bậc, Chức vụ</th>
+                            <th class="px-4 py-3 border-b font-semibold">Cơ quan, Đơn vị</th>
+                            <th class="px-4 py-3 border-b font-semibold">Quê Quán</th>
+                            <th class="px-4 py-3 border-b font-semibold">Khu</th>
+                            <th class="px-4 py-3 border-b font-semibold">Ô, Hàng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm divide-y divide-gray-200">
+                        <!-- Dữ liệu sẽ được JavaScript điền vào đây -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 text-right text-sm text-gray-500" id="recordCount">
+                Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Nhúng dữ liệu từ file data.js -->
+    <script src="data.js"></script>
+    
+    <!-- Mã xử lý Logic -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Kiểm tra xem dữ liệu đã được tải chưa
+            if (typeof rawData === 'undefined') {
+                document.getElementById("tableBody").innerHTML = `<tr><td colspan="9" class="px-4 py-4 text-center text-red-500">Lỗi: Không tìm thấy file dữ liệu (data.js).</td></tr>`;
+                return;
+            }
+
+            // 1. CHUẨN HÓA DỮ LIỆU (Bỏ qua dòng tiêu đề rác và ánh xạ lại Key)
+            const dataToProcess = (rawData[0] && rawData[0]["Column1"] === "STT") 
+                                  ? rawData.slice(1) 
+                                  : rawData;
+
+            const normalizedData = dataToProcess.map(item => ({
+                stt: item["Column1"] || "",
+                hoTen: item[" "] || "Chưa rõ",
+                namSinh: (item["Column3"] === " " || !item["Column3"]) ? "" : item["Column3"],
+                ngayHySinh: (item["Column4"] === " " || !item["Column4"]) ? "" : item["Column4"],
+                chucVu: (item["Column5"] === " " || !item["Column5"]) ? "" : item["Column5"],
+                donVi: (item["Column6"] === " " || !item["Column6"]) ? "" : item["Column6"],
+                queQuan: (item["Column7"] === " " || !item["Column7"]) ? "" : item["Column7"],
+                khu: item["Column8"] || "",
+                oHang: item["Column9"] || ""
+            }));
+
+            // 2. HÀM HIỂN THỊ DỮ LIỆU RA BẢNG
+            const tableBody = document.getElementById("tableBody");
+            const recordCount = document.getElementById("recordCount");
+
+            function renderTable(data) {
+                tableBody.innerHTML = ""; // Xóa dữ liệu cũ
+                
+                if (data.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">Không tìm thấy thông tin phù hợp.</td></tr>`;
+                    recordCount.textContent = "0 hồ sơ";
+                    return;
+                }
+
+                // Tối ưu hóa DOM bằng DocumentFragment
+                const fragment = document.createDocumentFragment();
+
+                data.forEach(row => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-red-50 transition-colors duration-150";
+                    
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900">${row.stt}</td>
+                        <td class="px-4 py-3 font-bold text-red-700">${row.hoTen}</td>
+                        <td class="px-4 py-3">${row.namSinh}</td>
+                        <td class="px-4 py-3">${row.ngayHySinh}</td>
+                        <td class="px-4 py-3">${row.chucVu}</td>
+                        <td class="px-4 py-3 truncate max-w-xs" title="${row.donVi}">${row.donVi}</td>
+                        <td class="px-4 py-3 truncate max-w-xs" title="${row.queQuan}">${row.queQuan}</td>
+                        <td class="px-4 py-3 font-semibold text-gray-800 text-center">${row.khu}</td>
+                        <td class="px-4 py-3 font-semibold text-gray-800">${row.oHang}</td>
+                    `;
+                    fragment.appendChild(tr);
+                });
+
+                tableBody.appendChild(fragment);
+                recordCount.textContent = `Tổng cộng: ${data.length} hồ sơ`;
+            }
+
+            // Hiển thị toàn bộ dữ liệu khi trang vừa tải xong
+            renderTable(normalizedData);
+
+            // 3. XỬ LÝ TÌM KIẾM TỨC THỜI (Real-time Search)
+            const searchInput = document.getElementById("searchInput");
+            searchInput.addEventListener("input", (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                
+                const filteredData = normalizedData.filter(row => {
+                    // Chuyển toàn bộ giá trị của mỗi hàng thành một chuỗi duy nhất để tìm kiếm
+                    const rowText = Object.values(row).join(" ").toLowerCase();
+                    return rowText.includes(searchTerm);
+                });
+                
+                renderTable(filteredData);
+            });
+        });
+    </script>
+</body>
+</html>
